@@ -559,6 +559,10 @@ Clone the repository and build:
     cd xen/extras/mini-os
     make
 
+If you prefer to cross-compile (rather than compiling on the board using the Linux guest created above), use e.g.
+
+    make XEN_TARGET_ARCH=arm32 CROSS_COMPILE=arm-linux-gnueabihf-
+
 Transfer the resulting `mini-os.img` to your dom0 and add a configuration file for it:
 
     kernel = "/root/mini-os.img"
@@ -575,23 +579,87 @@ Create a disk for it:
 
 You should now be able to start it:
 
-    xl create mini-os.cfg
+    xl create -c mini-os.cfg
 
-On success, it will write lots of text to the Xen console (note: this requires a debug build of Xen):
+On success, you should see something like this displayed on the VM's console:
 
-    (d6) dtb_pointer : 87fff000
-    (d6) MM: Init
-    (d6)     _text: 80008000(VA)
-    (d6)     _etext: 80018f1c(VA)
-    (d6)     _erodata: 8001b000(VA)
-    (d6)     _edata: 8002820c(VA)
-    (d6)     stack start: 8001c000(VA)
-    (d6)     _end: 8002dee0(VA)
-    (d6)     start_pfn: 80415
-    (d6)     max_pfn: 8282d
-    (d6) MM: Initialise page allocator for 80415000(80415000) - 0(8282d000)
-    (d6) MM: done
-    (d6) Initialising timer interface
-    ...
+    done.
+    FDT suggests grant table base b0000000
+    gnttab_table mapped at b0000000.
+    Initialising scheduler
+    Thread "Idle": pointer: 0x83ffe040, stack: 0x83ff8000
+    Thread "xenstore": pointer: 0x83ffe078, stack: 0x80034000
+    xenbus initialised on event 1
+    Thread "shutdown": pointer: 0x83ffe0b0, stack: 0x83ff0000
+    Found GIC: gicd_base = 2c001000, gicc_base = 2c002000
+    kernel.c: dummy main: start_info=00000000
+    Doing xenbus test.
+    Got a reply, type 16, id 0, len 7.
+    Doing ls test.
+    ls device...
+    ls device[0] -> suspend
+    ls device[1] -> vbd
+    ls device[2] -> vif
+    ls device/vif...
+    ls device/vif[0] -> 0
+    ls device/vif/0...
+    ls device/vif/0[0] -> backend
+    ls device/vif/0[1] -> backend-id
+    ls device/vif/0[2] -> state
+    ls device/vif/0[3] -> handle
+    ls device/vif/0[4] -> mac
+    Doing read test.
+    Read device/vif/0/mac...
+    Read device/vif/0/mac -> 00:16:3e:7d:69:0d.
+    Read device/vif/0/backend...
+    Read device/vif/0/backend -> /local/domain/0/backend/vif/4/0.
+    Doing write test.
+    Write flobble to device/vif/0/flibble...
+    Success.
+    Read device/vif/0/flibble...
+    Read device/vif/0/flibble -> flobble.
+    Write widget to device/vif/0/flibble...
+    Success.
+    Read device/vif/0/flibble...
+    Read device/vif/0/flibble -> widget.
+    Doing rm test.
+    rm device/vif/0/flibble...
+    Success.
+    Read device/vif/0/flibble...
+    Error in xenbus read: ENOENT
+    (Should have said ENOENT)
 
-(to be continued...)
+If you don't see anything, it might have failed before it got as far as configuring the console. In that case, you should see earlier output on the Xen console (note: this requires a debug build of Xen):
+
+    (d2) Checking DTB at 83fff000...
+    (d2) MM: Init
+    (d2)     _text: 80008000(VA)
+    (d2)     _etext: 80019c4c(VA)
+    (d2)     _erodata: 8001b000(VA)
+    (d2)     _edata: 8002c20c(VA)
+    (d2)     stack start: 8001c000(VA)
+    (d2)     _end: 80031eec(VA)
+    (d2) Found memory at 80000000 (len 0x4000000)
+    (d2) Using pages 524338 to 540672 as free space for heap.
+    (d2) MM: Initialise page allocator for 80032000(80032000) - 83fff000(83fff000)
+    (d2) MM: done
+    (d2) Initialising timer interface
+    (d2) Virtual Count register is f080b8, freq = 24000000 Hz
+    (d2) Initialising console ... done.
+
+The `done` printed here is the same as the `done` seen in the normal console ouput above and the following output will be identical.
+
+If you have lwIP available, you can test networking by setting an IP address in `daytime.c`:
+
+    if (1) {
+        struct ip_addr ipaddr = { htonl((192 << 24) + (168 << 16) + (0 << 8) + (20)) };
+        struct ip_addr netmask = { htonl(0xffffff00) };
+        struct ip_addr gw = { 0 };
+        networking_set_addr(&ipaddr, &netmask, &gw);
+    }
+
+Then build with the lwIP library (version 1.3.2):
+
+    make LWIPDIR=.../lwip CONFIG_NETFRONT=y
+
+You should then be able to `ping 192.168.0.20`.
