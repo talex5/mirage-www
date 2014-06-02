@@ -2,7 +2,7 @@
 
 **Status:** work-in-progress
 
-These notes detail the process of setting up a Xen system on a Cubieboard2.
+These notes detail the process of setting up a Xen system on a Cubieboard2 (or Cubietruck).
 They are based on the [Xen ARM with Virtualization Extensions/Allwinner](http://wiki.xen.org/wiki/Xen_ARM_with_Virtualization_Extensions/Allwinner) documentation, but try to collect everything into one place.
 I'm trying to document the exact steps I took (with the wrong turns removed); some changes will be needed for other systems.
 
@@ -101,7 +101,8 @@ Note: only the "sunxi-next" branch has the required hypervisor support; DO NOT u
 
 Configure and build U-Boot using the ARM toolchain:
 
-    make CROSS_COMPILE=arm-linux-gnueabihf- Cubieboard2_config
+    export CUBIEBOARD=Cubieboard2	# Or Cubietruck
+    make CROSS_COMPILE=arm-linux-gnueabihf- ${CUBIEBOARD}_config
     make CROSS_COMPILE=arm-linux-gnueabihf- -j 4
 
 
@@ -111,7 +112,7 @@ Create a directory for the boot commands (e.g. "boot"). Create "boot/boot.cmd" w
 
     # SUNXI Xen Boot Script
     
-    # Addresses suitable for 1GB system, adjust as appropriate for a 2GB system.
+    # Addresses suitable for 1GB system, increase all values by 0x40000000 for a 2GB system.
     # Top of RAM:         0x80000000
     # Xen relocate addr   0x7fe00000
     setenv kernel_addr_r  0x7f600000 # 8M
@@ -126,7 +127,7 @@ Create a directory for the boot commands (e.g. "boot"). Create "boot/boot.cmd" w
     setenv bootargs "console=dtuart dtuart=/soc@01c00000/serial@01c28000 dom0_mem=128M"
     
     # Load appropriate .dtb file to ${fdt_addr}
-    fatload mmc 0 ${fdt_addr} /sun7i-a20-cubieboard2.dtb
+    fatload mmc 0 ${fdt_addr} /sun7i-a20-cubieboard2.dtb	# <-- adjust for cubietruck
     fdt addr ${fdt_addr} 0x40000
     fdt resize
     fdt chosen
