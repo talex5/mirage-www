@@ -132,8 +132,8 @@ let err fmt = Printf.ksprintf (fun msg ->
   ) fmt
 
 let () =
-  let tracing = None in
-  (* let tracing = mprof_trace ~size:10000 () in *)
+  (* let tracing = None in *)
+  let tracing = Some (mprof_trace ~size:1000000 ()) in
   register ?tracing image [ match tls with
       | false ->
         let server = http_server (conduit_direct stack) in
